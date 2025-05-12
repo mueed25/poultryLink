@@ -28,10 +28,10 @@ const SignInScreen = () => {
 
     // Validate email
     if (!email) {
-      setEmailError(t('auth.emailRequired'));
+      setEmailError(t('email Required'));
       isValid = false;
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError(t('auth.validEmail'));
+      setEmailError(t('valid Email'));
       isValid = false;
     } else {
       setEmailError('');
@@ -39,7 +39,7 @@ const SignInScreen = () => {
 
     // Validate password
     if (!password) {
-      setPasswordError(t('auth.passwordRequired'));
+      setPasswordError(t('password Required'));
       isValid = false;
     } else {
       setPasswordError('');
@@ -59,7 +59,7 @@ const SignInScreen = () => {
       // Navigation will be handled by the auth state listener
     } catch (error: any) {
       console.error('Sign in error:', error);
-      setGeneralError(t('auth.invalidCredentials'));
+      setGeneralError(t('invalid Credentials'));
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ const SignInScreen = () => {
             resizeMode="contain"
           />
 
-          <Title style={styles.title}>{t('auth.welcomeBack')}</Title>
+          <Title style={styles.title}>{t('welcomeBack')}</Title>
 
           {generalError ? (
             <Surface style={styles.errorContainer}>
@@ -93,7 +93,7 @@ const SignInScreen = () => {
 
           <View style={styles.formContainer}>
             <Input
-              label={t('auth.email')}
+              label={t('email')}
               value={email}
               onChangeText={setEmail}
               error={emailError}
@@ -103,7 +103,7 @@ const SignInScreen = () => {
             />
 
             <Input
-              label={t('auth.password')}
+              label={t('password')}
               value={password}
               onChangeText={setPassword}
               error={passwordError}
@@ -112,7 +112,7 @@ const SignInScreen = () => {
             />
 
             <TouchableOpacity onPress={navigateToForgotPassword} style={styles.forgotPasswordLink}>
-              <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
+              <Text style={styles.forgotPasswordText}>{t('forgot Password')}</Text>
             </TouchableOpacity>
 
             <Button
@@ -123,12 +123,12 @@ const SignInScreen = () => {
               style={styles.signInButton}
               labelStyle={styles.buttonLabel}
             >
-              {loading ? t('common.loading') : t('auth.signIn')}
+              {loading ? t('loading') : t('signIn')}
             </Button>
 
             <View style={styles.dividerContainer}>
               <Divider style={styles.divider} />
-              <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
+              <Text style={styles.dividerText}>{t('or Continue With')}</Text>
               <Divider style={styles.divider} />
             </View>
 
@@ -149,9 +149,9 @@ const SignInScreen = () => {
             </View>
 
             <View style={styles.signUpContainer}>
-              <Text>{t('auth.dontHaveAccount')}</Text>
+              <Text>{t('dont Have Account')}</Text>
               <TouchableOpacity onPress={navigateToSignUp}>
-                <Text style={styles.signUpLink}>{t('auth.signUp')}</Text>
+                <Text style={styles.signUpLink}>{t('signUp')}</Text>
               </TouchableOpacity>
             </View>
           </View>

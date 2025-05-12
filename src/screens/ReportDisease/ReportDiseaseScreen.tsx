@@ -1,91 +1,145 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
-  Alert,
+  TouchableOpacity,
+  Image,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
+  ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
-import { HealthResponseCard } from '../../components/HealthResponseCard';
-import {
-  analyzeHealthIssue,
-  saveConsultation,
-  getAnonymousUsageCount,
-} from '../../services/HealthConsultantService';
+import { useSnackbar } from '../../contexts/SnackbarContext';
+import { generateAIResponse } from '../../services/AIService';
+
+interface Message {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+  attachments?: string[];
+}
 
 export const ReportDiseaseScreen = () => {
   const { user } = useAuth();
-  const [userInput, setUserInput] = useState('');
+  const { showSnackbar } = useSnackbar();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [consultation, setConsultation] = useState<any>(null);
-  const [anonymousUsageCount, setAnonymousUsageCount] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    checkAnonymousUsage();
-  }, []);
+  const pickImage = async () => {
+    if (selectedImages.length >= 3) {
+      showSnackbar('You can only attach up to 3 images', 'warning');
+      return;
+    }
 
-  const checkAnonymousUsage = async () => {
-    if (!user) {
-      const count = await getAnonymousUsageCount();
-      setAnonymousUsageCount(count);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setSelectedImages([...selectedImages, result.assets[0].uri]);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!userInput.trim()) {
-      Alert.alert('Error', 'Please describe the health issue');
-      return;
-    }
+  const removeImage = (index: number) => {
+    setSelectedImages(selectedImages.filter((_, i) => i !== index));
+  };
 
-    if (!user && anonymousUsageCount >= 2) {
-      Alert.alert(
-        'Sign In Required',
-        'You have used your free consultations. Please sign in to continue.',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Sign In',
-            onPress: () => {
-              // Navigate to sign in screen
-            },
-          },
-        ]
-      );
-      return;
-    }
+  const handleSend = async () => {
+    if (!inputText.trim() && selectedImages.length === 0) return;
 
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text: inputText,
+      sender: 'user',
+      timestamp: new Date(),
+      attachments: selectedImages,
+    };
+
+    setMessages([...messages, newMessage]);
+    setInputText('');
+    setSelectedImages([]);
     setIsLoading(true);
+
     try {
-      const response = await analyzeHealthIssue(userInput);
-      const consultationData = {
-        userId: user?.uid || null,
-        question: userInput,
-        response,
+      const aiResponse = await generateAIResponse({
+        message: inputText,
+        images: selectedImages,
+        context: 'poultry_health',
+      });
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: aiResponse,
+        sender: 'ai',
+        timestamp: new Date(),
       };
-      const savedConsultation = await saveConsultation(consultationData);
-      setConsultation(savedConsultation);
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      showSnackbar('Failed to get AI response', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFeedback = (isHelpful: boolean) => {
-    if (isHelpful) {
-      // Show confetti animation or success message
-      Alert.alert('Thank you!', 'Your feedback helps us improve our service.');
-    }
+  const renderMessage = (message: Message) => {
+    const isAI = message.sender === 'ai';
+    
+    return (
+      <Animated.View
+        key={message.id}
+        style={[
+          styles.messageContainer,
+          isAI ? styles.aiMessage : styles.userMessage,
+        ]}
+      >
+        {isAI && (
+          <View style={styles.aiHeader}>
+            <MaterialIcons name="smart-toy" size={24} color="#276749" />
+            <Text style={styles.aiName}>Poultry Health AI</Text>
+          </View>
+        )}
+        
+        <Text style={styles.messageText}>{message.text}</Text>
+        
+        {message.attachments && message.attachments.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.attachmentsContainer}
+          >
+            {message.attachments.map((uri, index) => (
+              <View key={index} style={styles.imageWrapper}>
+                <Image source={{ uri }} style={styles.attachmentImage} />
+                {isAI && (
+                  <View style={styles.imageOverlay}>
+                    <MaterialIcons name="zoom-in" size={24} color="#FFFFFF" />
+                  </View>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
+        <Text style={styles.timestamp}>
+          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </Text>
+      </Animated.View>
+    );
   };
 
   return (
@@ -93,57 +147,76 @@ export const ReportDiseaseScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Health Assistant</Text>
-          <Text style={styles.subtitle}>
-            Describe any health issues. Our AI consultant will help you.
-          </Text>
-                </View>
+      <View style={styles.header}>
+        <Text style={styles.title}>Health Assistant</Text>
+        <Text style={styles.subtitle}>
+          Describe any health issues. Our AI consultant will help you.
+        </Text>
+      </View>
 
-        {!user && (
-          <View style={styles.usageInfo}>
-            <Text style={styles.usageText}>
-              Free consultations remaining: {2 - anonymousUsageCount}
-            </Text>
-                      </View>
-        )}
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Describe the symptoms or health issues you're observing..."
-            value={userInput}
-            onChangeText={setUserInput}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-                </View>
-
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleSubmit}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <>
-              <MaterialIcons name="send" size={20} color="#FFFFFF" />
-              <Text style={styles.submitButtonText}>Ask Consultant</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        {consultation && (
-          <HealthResponseCard
-            consultationId={consultation.id}
-            response={consultation.response}
-            onFeedback={handleFeedback}
-          />
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+      >
+        {messages.map(renderMessage)}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#276749" />
+            <Text style={styles.loadingText}>AI is analyzing...</Text>
+          </View>
         )}
       </ScrollView>
+
+      <View style={styles.inputContainer}>
+        {selectedImages.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.imageScroll}
+          >
+            {selectedImages.map((uri, index) => (
+              <View key={index} style={styles.imageWrapper}>
+                <Image source={{ uri }} style={styles.image} />
+                <TouchableOpacity
+                  style={styles.removeImage}
+                  onPress={() => removeImage(index)}
+                >
+                  <MaterialIcons name="close" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            ))}
+            {selectedImages.length < 3 && (
+              <TouchableOpacity style={styles.addImageButton} onPress={pickImage}>
+                <MaterialIcons name="add-a-photo" size={24} color="#666666" />
+                <Text style={styles.addImageText}>Add Photo</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+        )}
+
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            placeholder="Describe the symptoms or health issues..."
+            placeholderTextColor="#999999"
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+          />
+          <TouchableOpacity
+            style={styles.sendButton}
+            onPress={handleSend}
+            disabled={isLoading || (!inputText.trim() && selectedImages.length === 0)}
+          >
+            <MaterialIcons
+              name="send"
+              size={24}
+              color={isLoading || (!inputText.trim() && selectedImages.length === 0) ? '#999999' : '#276749'}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -151,68 +224,154 @@ export const ReportDiseaseScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAFC',
-  },
-  scrollContainer: {
-    padding: 16,
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    marginBottom: 24,
+    padding: 16,
+    backgroundColor: '#F7FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#276749',
-    marginBottom: 8,
+    color: '#2D3748',
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#4A5568',
-    lineHeight: 24,
-  },
-  usageInfo: {
-    backgroundColor: '#E6FFFA',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  usageText: {
-    color: '#276749',
     fontSize: 14,
-    textAlign: 'center',
+    color: '#4A5568',
   },
-  inputContainer: {
+  messagesContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  messageContainer: {
+    maxWidth: '80%',
     marginBottom: 16,
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
+    padding: 12,
     borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    minHeight: 120,
-    textAlignVertical: 'top',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  submitButton: {
-    backgroundColor: '#276749',
-    borderRadius: 12,
-    padding: 16,
+  userMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#F0FFF4',
+    borderTopRightRadius: 4,
+  },
+  aiMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F7FAFC',
+    borderTopLeftRadius: 4,
+  },
+  aiHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  aiName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#276749',
+    marginLeft: 8,
+  },
+  messageText: {
+    fontSize: 14,
+    color: '#2D3748',
+    lineHeight: 20,
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#718096',
+    marginTop: 4,
+    alignSelf: 'flex-end',
+  },
+  attachmentsContainer: {
+    marginTop: 8,
+  },
+  imageWrapper: {
+    position: 'relative',
+    marginRight: 8,
+  },
+  attachmentImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 24,
   },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F7FAFC',
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#4A5568',
+  },
+  inputContainer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  imageScroll: {
+    marginBottom: 8,
+  },
+  image: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  removeImage: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    padding: 2,
+  },
+  addImageButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: '#F7FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addImageText: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7FAFC',
+    borderRadius: 24,
+    paddingHorizontal: 12,
+  },
+  input: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 100,
+    fontSize: 14,
+    color: '#2D3748',
+    paddingVertical: 8,
+  },
+  sendButton: {
+    padding: 8,
   },
 });

@@ -15,6 +15,7 @@ import ProfileScreen from '../screens/Profile/ProfileScreen';
 import FeedScreen from '../screens/Feed/FeedScreen';
 import PostDetailScreen from '../screens/Feed/PostDetailScreen';
 import CreatePostScreen from '../screens/CreatePost/CreatePostScreen';
+import TrainingQuizScreen from '../screens/Training/TrainingQuizScreen';
 
 // Navigator
 import MarketplaceNavigator from './MarketplaceNavigator';
@@ -103,6 +104,7 @@ const AppNavigator = () => {
       <MainStack.Screen name="MainTabs" component={TabNavigator} />
       <MainStack.Screen name="PostDetail" component={PostDetailScreen} />
       <MainStack.Screen name="CreatePost" component={CreatePostScreen} />
+      <MainStack.Screen name="TrainingQuiz" component={TrainingQuizScreen} />
     </MainStack.Navigator>
   );
 };

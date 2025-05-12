@@ -24,10 +24,10 @@ const ForgotPasswordScreen = () => {
 
     // Validate email
     if (!email) {
-      setEmailError(t('auth.emailRequired'));
+      setEmailError(t('email Required'));
       isValid = false;
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError(t('auth.validEmail'));
+      setEmailError(t('valid Email'));
       isValid = false;
     } else {
       setEmailError('');
@@ -66,7 +66,7 @@ const ForgotPasswordScreen = () => {
           />
 
           <Title style={styles.title}>
-            {isEmailSent ? t('auth.checkYourEmail') : t('auth.forgotPassword')}
+            {isEmailSent ? t('check Your Email') : t('auth.forgotPassword')}
           </Title>
 
           {isEmailSent ? (

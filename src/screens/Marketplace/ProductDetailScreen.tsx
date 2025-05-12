@@ -5,7 +5,7 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { useCart } from '../../context/CartContext';
+import { useCart } from '../../contexts/CartContext';
 import { MarketplaceStackParamList } from '../../navigation/MarketplaceNavigator';
 
 // This would be defined in your navigation types file
@@ -66,14 +66,26 @@ const ProductDetailScreen = ({ route, navigation }: Props) => {
   };
 
   const handleBuyNow = () => {
-    // Add to cart and navigate to cart screen
-    addToCart(product, quantity);
+    // Add to cart and navigate to checkout
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      seller: product.seller
+    });
     navigation.navigate('CartScreen');
   };
 
   const handleAddToCart = () => {
     // Add to cart and show feedback
-    addToCart(product, quantity);
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      seller: product.seller
+    });
     setSnackbarVisible(true);
   };
 

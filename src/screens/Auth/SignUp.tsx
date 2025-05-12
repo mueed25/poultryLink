@@ -97,11 +97,11 @@ const SignUpScreen = () => {
             resizeMode="contain"
           />
 
-          <Title style={styles.title}>{t('auth.signUp')}</Title>
+          <Title style={styles.title}>{t('signUp')}</Title>
 
           <View style={styles.formContainer}>
             <Input
-              label={t('auth.name')}
+              label={t('name')}
               value={name}
               onChangeText={setName}
               error={nameError}
@@ -110,7 +110,7 @@ const SignUpScreen = () => {
             />
 
             <Input
-              label={t('auth.email')}
+              label={t('email')}
               value={email}
               onChangeText={setEmail}
               error={emailError}
@@ -120,7 +120,7 @@ const SignUpScreen = () => {
             />
 
             <Input
-              label={t('auth.password')}
+              label={t('password')}
               value={password}
               onChangeText={setPassword}
               error={passwordError}
@@ -129,7 +129,7 @@ const SignUpScreen = () => {
             />
 
             <Input
-              label={t('auth.confirmPassword')}
+              label={t('confirmPassword')}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               error={confirmPasswordError}
@@ -138,7 +138,7 @@ const SignUpScreen = () => {
             />
 
             <Text style={styles.passwordRequirements}>
-              {t('auth.passwordRequirements')}
+              {t('password Requirements')}
             </Text>
 
             <Button
@@ -149,12 +149,12 @@ const SignUpScreen = () => {
               style={styles.signUpButton}
               labelStyle={styles.buttonLabel}
             >
-              {loading ? t('common.loading') : t('auth.createAccount')}
+              {loading ? t('loading') : t('createAccount')}
             </Button>
 
             <View style={styles.dividerContainer}>
               <Divider style={styles.divider} />
-              <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
+              <Text style={styles.dividerText}>{t('or Continue With')}</Text>
               <Divider style={styles.divider} />
             </View>
 
@@ -163,9 +163,9 @@ const SignUpScreen = () => {
             </View>
 
             <View style={styles.signInContainer}>
-              <Text>{t('auth.alreadyHaveAccount')}</Text>
+              <Text>{t('already Have Account')}</Text>
               <TouchableOpacity onPress={navigateToSignIn}>
-                <Text style={styles.signInLink}>{t('auth.signIn')}</Text>
+                <Text style={styles.signInLink}>{t('signIn')}</Text>
               </TouchableOpacity>
             </View>
           </View>

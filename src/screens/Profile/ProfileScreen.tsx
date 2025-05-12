@@ -15,14 +15,15 @@ import {
   FAB,
   Portal,
   Provider as PaperProvider,
+  Card,
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
-import { Card } from '../../components/Card';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { signOut } from '../../services/authService';
+import { logout } from '../../services/authService';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const { width } = Dimensions.get('window');
 
@@ -54,52 +55,52 @@ interface UserData {
 }
 
 // Mock data for user posts
-const USER_POSTS: UserPost[] = [
+const USER_POSTS = [
   {
     id: '1',
+    author: 'John Doe',
+    authorAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    content: 'Just implemented a new feeding system that increased my egg production by 15%!',
     image: 'https://images.unsplash.com/photo-1569597967185-cd6120712154?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    caption: 'Just implemented a new feeding system that increased my egg production by 15%!',
     likes: 24,
     comments: 7,
-    date: '3 days ago',
+    time: '3 days ago',
+    tags: ['EggProduction', 'FeedingSystem'],
   },
   {
     id: '2',
+    author: 'John Doe',
+    authorAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    content: 'New isolation pen for birds with potential disease symptoms',
     image: 'https://images.unsplash.com/photo-1567450133695-a2295c419120?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    caption: 'New isolation pen for birds with potential disease symptoms',
     likes: 42,
     comments: 12,
-    date: '1 week ago',
+    time: '1 week ago',
+    tags: ['DiseasePrevention', 'BirdHealth'],
   },
   {
     id: '3',
+    author: 'John Doe',
+    authorAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    content: 'Solar-powered ventilation system for the poultry house',
     image: 'https://images.unsplash.com/photo-1613665813446-82a78c468a1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    caption: 'Solar-powered ventilation system for the poultry house',
     likes: 78,
     comments: 23,
-    date: '3 weeks ago',
-  },
-  {
-    id: '4',
-    image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    caption: 'Improved ventilation for better air quality',
-    likes: 35,
-    comments: 8,
-    date: '1 month ago',
-  },
-  {
-    id: '5',
-    image: 'https://images.unsplash.com/photo-1534470397334-1975940ece1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    caption: 'New feed mix with enhanced nutrition',
-    likes: 62,
-    comments: 17,
-    date: '2 months ago',
+    time: '3 weeks ago',
+    tags: ['Sustainability', 'Ventilation'],
   },
 ];
 
+type ProfileStackParamList = {
+  Profile: undefined;
+  PostDetail: { postId: string; post: UserPost };
+};
+
+type ProfileScreenNavigationProp = NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
+
 const ProfileScreen = () => {
   const { t } = useTranslation();
-  const navigation = useNavigation();
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarType, setSnackbarType] = useState<'success' | 'error'>('success');
@@ -155,9 +156,12 @@ const ProfileScreen = () => {
   const handleLogout = async () => {
     setIsLoading(true);
     try {
-      await signOut();
-      // Navigate to login screen
-      // navigation.navigate('SignIn');
+      await logout();
+      // Navigate to Welcome screen after successful logout
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Welcome' }],
+      });
       setSnackbarMessage(t('profile.logoutSuccess'));
       setSnackbarType('success');
       setSnackbarVisible(true);
@@ -311,28 +315,78 @@ const ProfileScreen = () => {
     console.log('New post created:', newPost);
   };
   
-  const renderPostItem = ({ item, index }: { item: UserPost; index: number }) => {
-    // Calculate number of columns (3) to determine dimensions
-    const imageSize = width / 3;
-    return (
-      <TouchableOpacity 
-        style={[styles.postItem, { width: imageSize, height: imageSize }]}
-        onPress={() => console.log('View post', item.id)}
-      >
+  const handlePostPress = (post: typeof USER_POSTS[0]) => {
+    navigation.navigate('PostDetail', { 
+      postId: post.id,
+      post: {
+        id: post.id,
+        author: post.author,
+        authorAvatar: post.authorAvatar,
+        content: post.content,
+        image: post.image,
+        likes: post.likes,
+        comments: post.comments,
+        time: post.time,
+        tags: post.tags
+      }
+    });
+  };
+
+  const renderPostItem = ({ item }: { item: typeof USER_POSTS[0] }) => (
+    <Card style={styles.card} onPress={() => handlePostPress(item)}>
+      <Card.Content style={styles.cardContent}>
+        <View style={styles.header}>
+          <Avatar.Image 
+            source={{ uri: item.authorAvatar }} 
+            size={40}
+          />
+          <View style={styles.headerInfo}>
+            <Text style={styles.authorName}>{item.author}</Text>
+            <Text style={styles.time}>{item.time}</Text>
+          </View>
+          <TouchableOpacity style={styles.moreButton}>
+            <MaterialIcons name="more-vert" size={20} color="#757575" />
+          </TouchableOpacity>
+        </View>
+        
+        <Text style={styles.content}>{item.content}</Text>
+        
+        {item.image && (
         <Image 
           source={{ uri: item.image }} 
-          style={styles.postImage} 
+            style={styles.image} 
           resizeMode="cover"
         />
-        {item.comments > 0 && (
-          <View style={styles.commentsIndicator}>
-            <MaterialIcons name="chat-bubble" size={12} color="#FFF" />
-            <Text style={styles.commentCount}>{item.comments}</Text>
+        )}
+        
+        {item.tags && item.tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {item.tags.map((tag, index) => (
+              <View key={index} style={styles.tagContainer}>
+                <Text style={styles.tag}>#{tag}</Text>
+              </View>
+            ))}
           </View>
         )}
+        
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity style={styles.actionButton}>
+            <MaterialIcons name="favorite-border" size={20} color="#757575" />
+            <Text style={styles.actionText}>{item.likes}</Text>
       </TouchableOpacity>
-    );
-  };
+          
+          <TouchableOpacity style={styles.actionButton}>
+            <MaterialIcons name="chat-bubble-outline" size={20} color="#757575" />
+            <Text style={styles.actionText}>{item.comments}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton}>
+            <MaterialIcons name="share" size={20} color="#757575" />
+          </TouchableOpacity>
+        </View>
+      </Card.Content>
+    </Card>
+  );
 
   const renderBadge = (badgeType: string) => {
     switch (badgeType) {
@@ -364,129 +418,114 @@ const ProfileScreen = () => {
   return (
     <PaperProvider>
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.username}>{userData.username}</Text>
-            {userData.isVerified && (
-              <MaterialIcons name="verified" size={20} color="#3182CE" style={styles.verifiedBadge} />
-            )}
-          </View>
-          <View style={styles.headerRight}>
+        <View style={styles.appHeader}>
+          <Text style={styles.companyName}>PoultryLink</Text>
             <IconButton 
-              icon="plus-box-outline" 
+            icon="cog" 
               size={24} 
-              iconColor="#276749" 
-              onPress={openCreatePost} 
-            />
-            <IconButton 
-              icon="menu" 
-              size={24} 
-              iconColor="#276749" 
+            iconColor="#666666" 
               onPress={toggleSettings} 
             />
-          </View>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {showSettings ? (
             <View style={styles.settingsContainer}>
-              <Surface style={styles.settingsCard} elevation={2}>
-                <LinearGradient
-                  colors={['#F7FAFC', '#EDF2F7']}
-                  style={styles.settingGradient}
-                >
-                  <View style={styles.settingHeader}>
-                    <Title style={styles.settingTitle}>{t('profile.settings')}</Title>
+              <View style={styles.settingsHeader}>
+                <Text style={styles.settingsTitle}>Settings</Text>
                     <IconButton 
                       icon="close" 
                       size={24} 
-                      iconColor="#4A5568" 
+                  iconColor="#666666" 
                       onPress={toggleSettings} 
                     />
                   </View>
-                </LinearGradient>
-                <Divider />
-                
-                <TouchableOpacity onPress={handleEditProfile}>
-                  <View style={styles.settingItem}>
-                    <View style={styles.settingLeft}>
-                      <View style={styles.iconCircle}>
-                        <MaterialIcons name="account-circle" size={20} color="#276749" />
+
+              <View style={styles.settingsSection}>
+                <Text style={styles.settingsSectionTitle}>Account</Text>
+                <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
+                  <View style={styles.settingItemLeft}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#E6F3FF' }]}>
+                      <MaterialIcons name="person" size={20} color="#3182CE" />
                       </View>
-                      <Text style={styles.settingText}>{t('profile.editProfile')}</Text>
+                    <Text style={styles.settingItemText}>Edit Profile</Text>
                     </View>
-                    <MaterialIcons name="chevron-right" size={24} color="#A0AEC0" />
-                  </View>
+                  <MaterialIcons name="chevron-right" size={24} color="#666666" />
                 </TouchableOpacity>
-                <Divider />
-                
-                <View style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <View style={styles.iconCircle}>
+
+                <TouchableOpacity style={styles.settingItem}>
+                  <View style={styles.settingItemLeft}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#F0FFF4' }]}>
                       <MaterialIcons name="notifications" size={20} color="#276749" />
                     </View>
-                    <Text style={styles.settingText}>{t('profile.notifications')}</Text>
+                    <Text style={styles.settingItemText}>Notifications</Text>
                   </View>
                   <Switch
                     value={notificationsEnabled}
                     onValueChange={setNotificationsEnabled}
                     color="#276749"
                   />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.settingItem}>
+                  <View style={styles.settingItemLeft}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#FFF5F5' }]}>
+                      <MaterialIcons name="security" size={20} color="#E53E3E" />
                 </View>
-                <Divider />
-                
-                <View style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <View style={styles.iconCircle}>
-                      <MaterialIcons name="brightness-4" size={20} color="#276749" />
+                    <Text style={styles.settingItemText}>Privacy & Security</Text>
+                  </View>
+                  <MaterialIcons name="chevron-right" size={24} color="#666666" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.settingsSection}>
+                <Text style={styles.settingsSectionTitle}>Appearance</Text>
+                <TouchableOpacity style={styles.settingItem}>
+                  <View style={styles.settingItemLeft}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#F0F9FF' }]}>
+                      <MaterialIcons name="brightness-4" size={20} color="#3182CE" />
                     </View>
-                    <Text style={styles.settingText}>{t('profile.darkMode')}</Text>
+                    <Text style={styles.settingItemText}>Dark Mode</Text>
                   </View>
                   <Switch
                     value={darkMode}
                     onValueChange={setDarkMode}
-                    color="#276749"
+                    color="#3182CE"
                   />
+                </TouchableOpacity>
                 </View>
-                <Divider />
-                
-                <TouchableOpacity>
-                  <View style={styles.settingItem}>
-                    <View style={styles.settingLeft}>
-                      <View style={styles.iconCircle}>
-                        <MaterialIcons name="security" size={20} color="#276749" />
+
+              <View style={styles.settingsSection}>
+                <Text style={styles.settingsSectionTitle}>Support</Text>
+                <TouchableOpacity style={styles.settingItem}>
+                  <View style={styles.settingItemLeft}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#F0F9FF' }]}>
+                      <MaterialIcons name="help" size={20} color="#3182CE" />
                       </View>
-                      <Text style={styles.settingText}>{t('profile.privacy')}</Text>
+                    <Text style={styles.settingItemText}>Help Center</Text>
                     </View>
-                    <MaterialIcons name="chevron-right" size={24} color="#A0AEC0" />
-                  </View>
+                  <MaterialIcons name="chevron-right" size={24} color="#666666" />
                 </TouchableOpacity>
-                <Divider />
-                
-                <TouchableOpacity>
-                  <View style={styles.settingItem}>
-                    <View style={styles.settingLeft}>
-                      <View style={styles.iconCircle}>
-                        <MaterialIcons name="help-outline" size={20} color="#276749" />
+
+                <TouchableOpacity style={styles.settingItem}>
+                  <View style={styles.settingItemLeft}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#F0F9FF' }]}>
+                      <MaterialIcons name="info" size={20} color="#3182CE" />
                       </View>
-                      <Text style={styles.settingText}>{t('profile.help')}</Text>
+                    <Text style={styles.settingItemText}>About</Text>
                     </View>
-                    <MaterialIcons name="chevron-right" size={24} color="#A0AEC0" />
-                  </View>
+                  <MaterialIcons name="chevron-right" size={24} color="#666666" />
                 </TouchableOpacity>
-                <Divider />
-                
-                <TouchableOpacity onPress={confirmLogout}>
-                  <View style={styles.settingItem}>
-                    <View style={styles.settingLeft}>
-                      <View style={[styles.iconCircle, styles.logoutIconCircle]}>
+              </View>
+
+              <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
+                <View style={styles.settingItemLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: '#FFF5F5' }]}>
                         <MaterialIcons name="logout" size={20} color="#E53E3E" />
                       </View>
-                      <Text style={styles.logoutText}>{t('common.logout')}</Text>
-                    </View>
+                  <Text style={[styles.settingItemText, { color: '#E53E3E' }]}>Logout</Text>
                   </View>
                 </TouchableOpacity>
-              </Surface>
             </View>
           ) : (
             <>
@@ -521,7 +560,7 @@ const ProfileScreen = () => {
                   <Text style={styles.farmName}>{userData.farmName}</Text>
                   <Text style={styles.bioText}>{userData.bio}</Text>
                   <View style={styles.locationContainer}>
-                    <MaterialIcons name="location-on" size={14} color="#718096" />
+                    <MaterialIcons name="location-on" size={14} color="#666666" />
                     <Text style={styles.locationText}>{userData.location}</Text>
                   </View>
 
@@ -533,132 +572,26 @@ const ProfileScreen = () => {
                     ))}
                   </View>
                 </View>
-                
-                <View style={styles.buttonRow}>
-                  <Button 
-                    mode="outlined" 
-                    onPress={handleEditProfile}
-                    style={styles.editProfileButton}
-                    labelStyle={styles.editButtonLabel}
-                  >
-                    {t('profile.editProfile')}
-                  </Button>
-                  <Button 
-                    mode="outlined" 
-                    onPress={() => console.log('Share profile')}
-                    style={styles.shareProfileButton}
-                    labelStyle={styles.shareButtonLabel}
-                  >
-                    {t('profile.shareProfile')}
-                  </Button>
                 </View>
 
-                <View style={styles.highlightsContainer}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {/* Story highlights */}
-                    <View style={styles.highlightItem}>
-                      <View style={styles.highlightCircle}>
-                        <MaterialIcons name="add" size={24} color="#276749" />
-                      </View>
-                      <Text style={styles.highlightText}>New</Text>
-                    </View>
-                    <View style={styles.highlightItem}>
-                      <View style={styles.highlightCircle}>
-                        <Image 
-                          source={{ uri: 'https://images.unsplash.com/photo-1569597967185-cd6120712154?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' }} 
-                          style={styles.highlightImage} 
-                        />
-                      </View>
-                      <Text style={styles.highlightText}>Feeding</Text>
-                    </View>
-                    <View style={styles.highlightItem}>
-                      <View style={styles.highlightCircle}>
-                        <Image 
-                          source={{ uri: 'https://images.unsplash.com/photo-1567450133695-a2295c419120?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' }} 
-                          style={styles.highlightImage} 
-                        />
-                      </View>
-                      <Text style={styles.highlightText}>Health</Text>
-                    </View>
-                    <View style={styles.highlightItem}>
-                      <View style={styles.highlightCircle}>
-                        <Image 
-                          source={{ uri: 'https://images.unsplash.com/photo-1613665813446-82a78c468a1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' }} 
-                          style={styles.highlightImage} 
-                        />
-                      </View>
-                      <Text style={styles.highlightText}>Systems</Text>
-                    </View>
-                  </ScrollView>
-                </View>
+              <View style={styles.postsSection}>
+                <View style={styles.postsHeader}>
+                  <Text style={styles.postsTitle}>Recent Posts</Text>
+                  <IconButton 
+                    icon="plus" 
+                    size={24} 
+                    iconColor="#666666" 
+                    onPress={openCreatePost} 
+                  />
               </View>
-              
-              <View style={styles.tabsContainer}>
-                <TouchableOpacity 
-                  style={[
-                    styles.tab, 
-                    activeTab === 'posts' && styles.activeTab
-                  ]}
-                  onPress={() => setActiveTab('posts')}
-                >
-                  <MaterialIcons 
-                    name="grid-on" 
-                    size={24} 
-                    color={activeTab === 'posts' ? '#276749' : '#718096'} 
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[
-                    styles.tab, 
-                    activeTab === 'saved' && styles.activeTab
-                  ]}
-                  onPress={() => setActiveTab('saved')}
-                >
-                  <MaterialIcons 
-                    name="bookmark-border" 
-                    size={24} 
-                    color={activeTab === 'saved' ? '#276749' : '#718096'} 
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[
-                    styles.tab, 
-                    activeTab === 'tagged' && styles.activeTab
-                  ]}
-                  onPress={() => setActiveTab('tagged')}
-                >
-                  <MaterialIcons 
-                    name="person-pin" 
-                    size={24} 
-                    color={activeTab === 'tagged' ? '#276749' : '#718096'} 
-                  />
-                </TouchableOpacity>
-              </View>
-              
-              {activeTab === 'posts' && (
                 <FlatList
-                  data={posts}
+                  data={USER_POSTS}
                   renderItem={renderPostItem}
-                  keyExtractor={item => item.id}
-                  numColumns={3}
-                  scrollEnabled={false}
-                  contentContainerStyle={styles.postsGrid}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={styles.postsList}
+                  showsVerticalScrollIndicator={false}
                 />
-              )}
-              
-              {activeTab === 'saved' && (
-                <View style={styles.emptyStateContainer}>
-                  <MaterialIcons name="bookmark" size={48} color="#CBD5E0" />
-                  <Text style={styles.emptyStateText}>No saved posts yet</Text>
                 </View>
-              )}
-              
-              {activeTab === 'tagged' && (
-                <View style={styles.emptyStateContainer}>
-                  <MaterialIcons name="person-pin" size={48} color="#CBD5E0" />
-                  <Text style={styles.emptyStateText}>No tagged posts</Text>
-                </View>
-              )}
             </>
           )}
         </ScrollView>
@@ -767,34 +700,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
+  appHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    height: 56,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  username: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1A202C',
-  },
-  verifiedBadge: {
-    marginLeft: 4,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  companyName: {
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#333333',
   },
   profileSection: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   profileHeader: {
     flexDirection: 'row',
@@ -805,8 +728,8 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   avatar: {
-    borderWidth: 3,
-    borderColor: '#276749',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
   },
   statsContainer: {
     flex: 1,
@@ -819,12 +742,12 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1A202C',
+    fontWeight: '500',
+    color: '#333333',
   },
   statLabel: {
     fontSize: 12,
-    color: '#718096',
+    color: '#666666',
   },
   bioSection: {
     marginBottom: 16,
@@ -835,18 +758,17 @@ const styles = StyleSheet.create({
   },
   displayName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1A202C',
+    fontWeight: '500',
+    color: '#333333',
   },
   farmName: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#276749',
+    color: '#666666',
     marginBottom: 4,
   },
   bioText: {
     fontSize: 14,
-    color: '#4A5568',
+    color: '#333333',
     marginBottom: 4,
     lineHeight: 20,
   },
@@ -856,7 +778,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 12,
-    color: '#718096',
+    color: '#666666',
     marginLeft: 2,
   },
   badgesContainer: {
@@ -869,171 +791,163 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   badgeChip: {
-    backgroundColor: '#F0FFF4',
+    backgroundColor: '#F5F5F5',
   },
   badgeText: {
     fontSize: 10,
-    color: '#276749',
+    color: '#666666',
   },
-  buttonRow: {
+  postsSection: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  postsHeader: {
     flexDirection: 'row',
-    marginBottom: 16,
-  },
-  editProfileButton: {
-    flex: 1,
-    marginRight: 8,
-    borderRadius: 6,
-    borderColor: '#E2E8F0',
-  },
-  editButtonLabel: {
-    fontSize: 14,
-    color: '#1A202C',
-  },
-  shareProfileButton: {
-    flex: 1,
-    marginLeft: 8,
-    borderRadius: 6,
-    borderColor: '#E2E8F0',
-  },
-  shareButtonLabel: {
-    fontSize: 14,
-    color: '#1A202C',
-  },
-  highlightsContainer: {
-    marginBottom: 16,
-  },
-  highlightItem: {
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginRight: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
-  highlightCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
+  postsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  postsList: {
+    paddingVertical: 8,
+  },
+  card: {
+    padding: 0,
+    borderRadius: 10,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardContent: {
+    padding: 12,
+  },
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
-    overflow: 'hidden',
+    marginBottom: 12,
   },
-  highlightImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  headerInfo: {
+    marginLeft: 12,
+    flex: 1,
   },
-  highlightText: {
+  authorName: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  time: {
     fontSize: 12,
-    color: '#718096',
+    color: '#757575',
   },
-  tabsContainer: {
+  moreButton: {
+    padding: 4,
+  },
+  content: {
+    marginBottom: 12,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  tagContainer: {
+    backgroundColor: '#F0F5F0',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  tag: {
+    fontSize: 12,
+    color: '#4CAF50',
+  },
+  actionsContainer: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderTopColor: '#EEEEEE',
+    paddingTop: 12,
   },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#276749',
-  },
-  postsGrid: {
-    flexGrow: 1,
-  },
-  postItem: {
-    position: 'relative',
-    borderWidth: 0.5,
-    borderColor: '#FFFFFF',
-  },
-  postImage: {
-    width: '100%',
-    height: '100%',
-  },
-  commentsIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 24,
   },
-  commentCount: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    marginLeft: 2,
-  },
-  emptyStateContainer: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyStateText: {
-    marginTop: 12,
-    color: '#718096',
-    fontSize: 16,
+  actionText: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: '#757575',
   },
   settingsContainer: {
     padding: 16,
   },
-  settingsCard: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  settingGradient: {
-    width: '100%',
-  },
-  settingHeader: {
+  settingsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    marginBottom: 20,
   },
-  settingTitle: {
+  settingsTitle: {
     fontSize: 18,
-    color: '#276749',
+    fontWeight: '500',
+    color: '#333333',
+  },
+  settingsSection: {
+    marginBottom: 20,
+  },
+  settingsSectionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
-  settingLeft: {
+  settingItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconCircle: {
-    backgroundColor: '#F0FFF4',
-    borderRadius: 20,
-    width: 36,
-    height: 36,
+  settingIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  logoutIconCircle: {
-    backgroundColor: '#FFF5F5',
-  },
-  settingText: {
-    fontSize: 16,
-    color: '#4A5568',
+  settingItemText: {
+    fontSize: 15,
+    color: '#333333',
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  logoutText: {
-    fontSize: 16,
-    color: '#E53E3E',
+    marginTop: 20,
+    paddingVertical: 10,
   },
   successSnackbar: {
     backgroundColor: '#276749',

@@ -194,7 +194,13 @@ const MarketplaceScreen = () => {
       console.log('Authentication required to place an order');
     } else {
       // Add to cart
-      addToCart(product, 1);
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        seller: product.seller
+      });
       // Provide feedback to user
       alert('Added to cart!');
     }
@@ -431,7 +437,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F7FAFC',
-    paddingTop: 8,
+    paddingTop: 4,
   },
   content: {
     padding: 12,
@@ -513,16 +519,20 @@ const styles = StyleSheet.create({
   productCardContainer: {
     width: '48%',
     marginBottom: 12,
+    height: 320,
   },
   productCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     overflow: 'hidden',
     elevation: 2,
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
   },
   imageContainer: {
     position: 'relative',
-    height: 130,
+    height: 160,
     width: '100%',
   },
   productImage: {
@@ -548,12 +558,17 @@ const styles = StyleSheet.create({
   },
   productDetails: {
     padding: 8,
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   productTitle: {
     fontSize: 13,
     fontWeight: 'bold',
     marginBottom: 2,
     flexWrap: 'wrap',
+    minHeight: 36,
   },
   sellerName: {
     fontSize: 11,
@@ -584,7 +599,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 'auto',
   },
   actionIcon: {
     margin: 0,

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, ScrollView, View, Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, SafeAreaView, ScrollView, View, Image, TouchableOpacity, FlatList } from 'react-native';
 import { Text, Title, Button, TextInput, Divider, Card, IconButton, Checkbox } from 'react-native-paper';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MarketplaceStackParamList } from '../../navigation/MarketplaceNavigator';
-import { useCart } from '../../context/CartContext';
+import { useCart } from '../../contexts/CartContext';
 
 type CartNavigationProp = StackNavigationProp<MarketplaceStackParamList, 'CartScreen'>;
 
@@ -22,7 +22,7 @@ const CartScreen = () => {
   const [total, setTotal] = useState(0);
 
   // Calculate delivery fee based on selected option
-  const deliveryFee = deliveryOption === 'express' ? 1000 : 500;
+  const deliveryFee = deliveryOption === 'express' ? 1000 : deliveryOption === 'standard' ? 500 : 0;
 
   // Update totals whenever cart items or delivery option changes
   useEffect(() => {
@@ -68,25 +68,26 @@ const CartScreen = () => {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content}>
-        {/* Cart Items */}
-        {items.length === 0 ? (
-          <Card style={styles.emptyCartCard}>
-            <Card.Content style={styles.emptyCartContent}>
-              <MaterialIcons name="shopping-cart" size={64} color="#CBD5E0" />
-              <Text style={styles.emptyCartText}>Your cart is empty</Text>
-              <Button 
-                mode="contained" 
-                style={styles.shopButton}
-                onPress={() => navigation.navigate('MarketplaceHome')}
-              >
-                Continue Shopping
-              </Button>
-            </Card.Content>
-          </Card>
-        ) : (
-          items.map(item => (
-            <Card key={item.id} style={styles.cartItemCard}>
+      {items.length === 0 ? (
+        <Card style={styles.emptyCartCard}>
+          <Card.Content style={styles.emptyCartContent}>
+            <MaterialIcons name="shopping-cart" size={64} color="#CBD5E0" />
+            <Text style={styles.emptyCartText}>Your cart is empty</Text>
+            <Button 
+              mode="contained" 
+              style={styles.shopButton}
+              onPress={() => navigation.navigate('MarketplaceHome')}
+            >
+              Continue Shopping
+            </Button>
+          </Card.Content>
+        </Card>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Card style={styles.cartItemCard}>
               <View style={styles.cartItem}>
                 <Image source={{ uri: item.image }} style={styles.itemImage} />
                 <View style={styles.itemDetails}>
@@ -119,139 +120,162 @@ const CartScreen = () => {
                 </View>
               </View>
             </Card>
-          ))
-        )}
+          )}
+          ListHeaderComponent={() => (
+            <View>
+              {/* Address Section */}
+              <Card style={styles.sectionCard}>
+                <Card.Content>
+                  <Title style={styles.sectionTitle}>Address</Title>
+                  <TextInput
+                    value={address}
+                    onChangeText={setAddress}
+                    mode="outlined"
+                    placeholder="Enter your full address"
+                    style={styles.addressInput}
+                    outlineColor="#E2E8F0"
+                    activeOutlineColor="#276749"
+                  />
+                </Card.Content>
+              </Card>
 
-        {items.length > 0 && (
-          <>
-            {/* Address Section */}
-            <Card style={styles.sectionCard}>
-              <Card.Content>
-                <Title style={styles.sectionTitle}>Address</Title>
-                <TextInput
-                  value={address}
-                  onChangeText={setAddress}
-                  mode="outlined"
-                  placeholder="Enter your full address"
-                  style={styles.addressInput}
-                  outlineColor="#E2E8F0"
-                  activeOutlineColor="#276749"
-                />
-              </Card.Content>
-            </Card>
-
-            {/* Delivery Options */}
-            <Card style={styles.sectionCard}>
-              <Card.Content>
-                <Title style={styles.sectionTitle}>Delivery method</Title>
-                <TouchableOpacity 
-                  style={[
-                    styles.deliveryOption,
-                    deliveryOption === 'standard' && styles.selectedDeliveryOption
-                  ]}
-                  onPress={() => setDeliveryOption('standard')}
-                >
-                  <View style={styles.deliveryOptionContent}>
-                    <MaterialIcons 
-                      name="local-shipping" 
-                      size={24} 
-                      color={deliveryOption === 'standard' ? '#276749' : '#718096'} 
-                    />
-                    <View style={styles.deliveryOptionDetails}>
-                      <Text style={styles.deliveryOptionTitle}>Standard Delivery</Text>
-                      <Text style={styles.deliveryOptionDescription}>3-5 business days</Text>
+              {/* Delivery Options */}
+              <Card style={styles.sectionCard}>
+                <Card.Content>
+                  <Title style={styles.sectionTitle}>Delivery method</Title>
+                  
+                  <TouchableOpacity 
+                    style={[
+                      styles.deliveryOption,
+                      deliveryOption === 'local' && styles.selectedDeliveryOption
+                    ]}
+                    onPress={() => setDeliveryOption('local')}
+                  >
+                    <View style={styles.deliveryOptionContent}>
+                      <MaterialIcons 
+                        name="store" 
+                        size={24} 
+                        color={deliveryOption === 'local' ? '#276749' : '#718096'} 
+                      />
+                      <View style={styles.deliveryOptionDetails}>
+                        <Text style={styles.deliveryOptionTitle}>Local Pickup</Text>
+                        <Text style={styles.deliveryOptionDescription}>Pick up from our store</Text>
+                      </View>
                     </View>
-                  </View>
-                  <Text style={styles.deliveryOptionPrice}>{formatPrice(500)}</Text>
-                </TouchableOpacity>
+                    <Text style={styles.deliveryOptionPrice}>{formatPrice(0)}</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={[
-                    styles.deliveryOption,
-                    deliveryOption === 'express' && styles.selectedDeliveryOption
-                  ]}
-                  onPress={() => setDeliveryOption('express')}
-                >
-                  <View style={styles.deliveryOptionContent}>
-                    <MaterialIcons 
-                      name="directions-run" 
-                      size={24} 
-                      color={deliveryOption === 'express' ? '#276749' : '#718096'} 
-                    />
-                    <View style={styles.deliveryOptionDetails}>
-                      <Text style={styles.deliveryOptionTitle}>Express Delivery</Text>
-                      <Text style={styles.deliveryOptionDescription}>1-2 business days</Text>
+                  <TouchableOpacity 
+                    style={[
+                      styles.deliveryOption,
+                      deliveryOption === 'standard' && styles.selectedDeliveryOption
+                    ]}
+                    onPress={() => setDeliveryOption('standard')}
+                  >
+                    <View style={styles.deliveryOptionContent}>
+                      <MaterialIcons 
+                        name="local-shipping" 
+                        size={24} 
+                        color={deliveryOption === 'standard' ? '#276749' : '#718096'} 
+                      />
+                      <View style={styles.deliveryOptionDetails}>
+                        <Text style={styles.deliveryOptionTitle}>Standard Delivery</Text>
+                        <Text style={styles.deliveryOptionDescription}>3-5 business days</Text>
+                      </View>
                     </View>
+                    <Text style={styles.deliveryOptionPrice}>{formatPrice(500)}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[
+                      styles.deliveryOption,
+                      deliveryOption === 'express' && styles.selectedDeliveryOption
+                    ]}
+                    onPress={() => setDeliveryOption('express')}
+                  >
+                    <View style={styles.deliveryOptionContent}>
+                      <MaterialIcons 
+                        name="directions-run" 
+                        size={24} 
+                        color={deliveryOption === 'express' ? '#276749' : '#718096'} 
+                      />
+                      <View style={styles.deliveryOptionDetails}>
+                        <Text style={styles.deliveryOptionTitle}>Express Delivery</Text>
+                        <Text style={styles.deliveryOptionDescription}>1-2 business days</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.deliveryOptionPrice}>{formatPrice(1000)}</Text>
+                  </TouchableOpacity>
+                </Card.Content>
+              </Card>
+            </View>
+          )}
+          ListFooterComponent={() => (
+            <View>
+              {/* Order Summary */}
+              <Card style={styles.sectionCard}>
+                <Card.Content>
+                  <Title style={styles.sectionTitle}>Order summary</Title>
+                  
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Subtotal</Text>
+                    <Text style={styles.summaryValue}>{formatPrice(subtotal)}</Text>
                   </View>
-                  <Text style={styles.deliveryOptionPrice}>{formatPrice(1000)}</Text>
-                </TouchableOpacity>
-              </Card.Content>
-            </Card>
+                  
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Delivery fee</Text>
+                    <Text style={styles.summaryValue}>{formatPrice(deliveryFee)}</Text>
+                  </View>
+                  
+                  <Divider style={styles.summaryDivider} />
+                  
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.totalLabel}>Total</Text>
+                    <Text style={styles.totalValue}>{formatPrice(total)}</Text>
+                  </View>
+                </Card.Content>
+              </Card>
 
-            {/* Order Summary */}
-            <Card style={styles.sectionCard}>
-              <Card.Content>
-                <Title style={styles.sectionTitle}>Order summary</Title>
-                
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Subtotal</Text>
-                  <Text style={styles.summaryValue}>{formatPrice(subtotal)}</Text>
+              {/* Terms */}
+              <View style={styles.termsContainer}>
+                <View style={styles.checkboxRow}>
+                  <Checkbox
+                    status={termsChecked ? 'checked' : 'unchecked'}
+                    onPress={() => setTermsChecked(!termsChecked)}
+                    color="#276749"
+                  />
+                  <Text style={styles.termsText}>
+                    I have read and understood the terms and conditions
+                  </Text>
                 </View>
                 
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Delivery fee</Text>
-                  <Text style={styles.summaryValue}>{formatPrice(deliveryFee)}</Text>
+                <View style={styles.checkboxRow}>
+                  <Checkbox
+                    status={returnsChecked ? 'checked' : 'unchecked'}
+                    onPress={() => setReturnsChecked(!returnsChecked)}
+                    color="#276749"
+                  />
+                  <Text style={styles.termsText}>
+                    I have read and understood the returns policy
+                  </Text>
                 </View>
-                
-                <Divider style={styles.summaryDivider} />
-                
-                <View style={styles.summaryRow}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>{formatPrice(total)}</Text>
-                </View>
-              </Card.Content>
-            </Card>
-
-            {/* Terms */}
-            <View style={styles.termsContainer}>
-              <View style={styles.checkboxRow}>
-                <Checkbox
-                  status={termsChecked ? 'checked' : 'unchecked'}
-                  onPress={() => setTermsChecked(!termsChecked)}
-                  color="#276749"
-                />
-                <Text style={styles.termsText}>
-                  I have read and understood the terms and conditions
-                </Text>
               </View>
-              
-              <View style={styles.checkboxRow}>
-                <Checkbox
-                  status={returnsChecked ? 'checked' : 'unchecked'}
-                  onPress={() => setReturnsChecked(!returnsChecked)}
-                  color="#276749"
-                />
-                <Text style={styles.termsText}>
-                  I have read and understood the returns policy
-                </Text>
+
+              {/* Complete Order Button */}
+              <View style={styles.buttonContainer}>
+                <Button
+                  mode="contained"
+                  onPress={handleCheckout}
+                  style={styles.checkoutButton}
+                  disabled={!termsChecked || !returnsChecked || !address}
+                >
+                  Complete Order
+                </Button>
               </View>
             </View>
-          </>
-        )}
-      </ScrollView>
-
-      {/* Bottom Action Bar - Only show if cart has items */}
-      {items.length > 0 && (
-        <View style={styles.bottomBar}>
-          <Button
-            mode="contained"
-            onPress={handleCheckout}
-            style={styles.checkoutButton}
-            disabled={!termsChecked || !returnsChecked || !address}
-          >
-            Complete Order
-          </Button>
-        </View>
+          )}
+          contentContainerStyle={styles.content}
+        />
       )}
     </SafeAreaView>
   );
@@ -275,8 +299,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   content: {
-    flex: 1,
     padding: 16,
+    paddingBottom: 32,
   },
   cartItemCard: {
     marginBottom: 16,
@@ -409,18 +433,15 @@ const styles = StyleSheet.create({
     color: '#4A5568',
     flex: 1,
   },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    elevation: 8,
+  buttonContainer: {
+    marginTop: 24,
+    marginBottom: 32,
+    paddingHorizontal: 16,
   },
   checkoutButton: {
-    backgroundColor: '#DD6B20',
+    backgroundColor: '#276749',
     paddingVertical: 8,
+    borderRadius: 8,
   },
   emptyCartCard: {
     marginBottom: 16,

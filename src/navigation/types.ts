@@ -27,10 +27,10 @@ export type FeedStackParamList = {
 
 // Main navigator that contains Auth and App stacks
 export type RootStackParamList = {
-  Auth: NavigatorScreenParams<AuthStackParamList>;
   MainTabs: NavigatorScreenParams<AppTabParamList>;
   PostDetail: { postId: string };
   CreatePost: undefined;
+  TrainingQuiz: undefined;
 };
 
 // Declare global type augmentation for navigation typing

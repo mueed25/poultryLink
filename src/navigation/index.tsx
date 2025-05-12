@@ -1,10 +1,15 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, View, useColorScheme } from 'react-native';
+import { createStackNavigator } from '@react-navigation/stack';
 import AppNavigator from './AppNavigator';
 import AuthNavigator from './AuthNavigator';
 import { useAuth } from '../contexts/AuthContext';
 import { CombinedDefaultTheme } from '../theme/theme';
+import { RootStackParamList } from './types';
+
+// Create a root stack navigator
+const Stack = createStackNavigator<RootStackParamList>();
 
 export const RootNavigator = () => {
   const { user, loading } = useAuth();
@@ -12,7 +17,7 @@ export const RootNavigator = () => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7FAFC' }}>
         <ActivityIndicator size="large" color={CombinedDefaultTheme.colors.primary} />
       </View>
     );
@@ -32,7 +37,7 @@ export const RootNavigator = () => {
         },
       }}
     >
-      {user ? <AppNavigator /> : <AuthNavigator />}
+      {user === null ? <AuthNavigator /> : <AppNavigator />}
     </NavigationContainer>
   );
 };

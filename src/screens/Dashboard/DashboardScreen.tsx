@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, FlatList, StyleSheet, View, Dimensions, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
-import { Text, Card, Title, Paragraph, Button, ActivityIndicator, Badge, Divider, Avatar, List, Surface, IconButton } from 'react-native-paper';
+import { Text, Card, Title, Paragraph, Button, ActivityIndicator, Badge, Divider, Avatar, List, Surface, IconButton, Menu } from 'react-native-paper';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import AIAlertService from '../../services/AIAlertService';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -117,14 +118,11 @@ const TRAINING_DATA = {
 const DashboardScreen = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation();
+  const { signOut } = useAuth();
   const [weatherAlerts, setWeatherAlerts] = useState<string[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
   const [expandedComments, setExpandedComments] = useState<{[key: string]: boolean}>({});
-
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'en' ? 'fr' : 'en';
-    i18n.changeLanguage(newLang);
-  };
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   useEffect(() => {
     const fetchWeatherAlerts = async () => {
@@ -150,6 +148,11 @@ const DashboardScreen = () => {
       ...prev,
       [postId]: !prev[postId]
     }));
+  };
+
+  const toggleLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
+    setShowLanguageMenu(false);
   };
 
   const renderTipCard = ({ item }: { item: DailyTip }) => (
@@ -179,88 +182,131 @@ const DashboardScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Title style={styles.headerTitle}>{t('dashboard.title')}</Title>
-          <IconButton 
-            icon="translate" 
-            onPress={toggleLanguage}
-            iconColor="#276749"
-          />
+      <View style={styles.header}>
+        <Title style={styles.headerTitle}>Dashboard</Title>
+        <View style={styles.headerActions}>
+          <Menu
+            visible={showLanguageMenu}
+            onDismiss={() => setShowLanguageMenu(false)}
+            anchor={
+              <IconButton
+                icon="translate"
+                size={24}
+                onPress={() => setShowLanguageMenu(true)}
+                style={styles.languageButton}
+              />
+            }
+          >
+            <Menu.Item
+              onPress={() => toggleLanguage('en')}
+              title="English"
+              leadingIcon={i18n.language === 'en' ? "check" : undefined}
+            />
+            <Menu.Item
+              onPress={() => toggleLanguage('fr')}
+              title="Français"
+              leadingIcon={i18n.language === 'fr' ? "check" : undefined}
+            />
+            <Menu.Item
+              onPress={() => toggleLanguage('es')}
+              title="Español"
+              leadingIcon={i18n.language === 'es' ? "check" : undefined}
+            />
+          </Menu>
         </View>
-
+      </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Weather and Alerts Section */}
         <View style={styles.section}>
           <View style={styles.weatherAlertsContainer}>
             {/* Combined Weather and Alert Card */}
-            <Surface style={[styles.combinedCard, styles.weatherCard]}>
-              <View style={styles.weatherOutbreakContainer}>
-                {/* Weather Info */}
-                <View style={styles.weatherInfoSection}>
-                  <View style={styles.weatherRow}>
-                    <View style={styles.weatherLeftColumn}>
-                      <View style={styles.weatherHeader}>
-                        <View style={styles.weatherTitleContainer}>
-                          <MaterialIcons name="wb-sunny" size={22} color="#FFD700" />
-                          <Text style={styles.weatherTitle}>Current Weather</Text>
+            <Surface style={styles.combinedCard}>
+              <LinearGradient
+                colors={['#276749', '#2F855A']}
+                style={styles.weatherGradient}
+              >
+                <View style={styles.weatherOutbreakContainer}>
+                  {/* Weather Info */}
+                  <View style={styles.weatherInfoSection}>
+                    <View style={styles.weatherRow}>
+                      <View style={styles.weatherLeftColumn}>
+                        <View style={styles.weatherHeader}>
+                          <View style={styles.weatherTitleContainer}>
+                            <MaterialIcons name="wb-sunny" size={24} color="#FFFFFF" />
+                            <Text style={styles.weatherTitle}>Current Weather</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.weatherContentRow}>
+                      <View style={styles.temperatureContainer}>
+                        <Text style={styles.temperatureValue}>{WEATHER_DATA.temperature}°C</Text>
+                        <Text style={styles.temperatureLabel}>{WEATHER_DATA.condition}</Text>
+                      </View>
+                      <View style={styles.weatherDetails}>
+                        <View style={styles.weatherDetailRow}>
+                          <MaterialIcons name="water-drop" size={16} color="#FFFFFF" />
+                          <Text style={styles.weatherDetailText}>
+                            Humidity: {WEATHER_DATA.humidity}%
+                          </Text>
+                        </View>
+                        <View style={styles.weatherDetailRow}>
+                          <MaterialIcons name="water" size={16} color="#FFFFFF" />
+                          <Text style={styles.weatherDetailText}>
+                            Rain: {WEATHER_DATA.rainfall}
+                          </Text>
+                        </View>
+                        <View style={styles.weatherDetailRow}>
+                          <MaterialIcons name="air" size={16} color="#FFFFFF" />
+                          <Text style={styles.weatherDetailText}>
+                            Wind: {WEATHER_DATA.wind}
+                          </Text>
                         </View>
                       </View>
                     </View>
                   </View>
-                  <View style={styles.weatherContentRow}>
-                    <View style={styles.temperatureContainer}>
-                      <Text style={styles.temperatureValue}>{WEATHER_DATA.temperature}°C</Text>
-                      <Text style={styles.temperatureLabel}>Partly Cloudy</Text>
+                  <Divider style={styles.weatherDivider} />
+                  {/* Outbreak Info */}
+                  <View style={styles.outbreakContent}>
+                    <View style={styles.outbreakHeader}>
+                      <View style={styles.outbreakTitleContainer}>
+                        <MaterialIcons name="warning" size={20} color="#FED7D7" />
+                        <Text style={styles.outbreakTitle}>Disease Alert</Text>
+                      </View>
+                      <Badge style={styles.outbreakBadge}>
+                        {OUTBREAK_DATA.trend === 'up' ? '↑' : OUTBREAK_DATA.trend === 'down' ? '↓' : '='}
+                      </Badge>
                     </View>
-                    <View style={styles.weatherDetails}>
-                      <Text style={styles.weatherDetailText}>
-                        Humidity: {WEATHER_DATA.humidity}% | Rain: {WEATHER_DATA.rainfall} | Wind: {WEATHER_DATA.wind}
-                      </Text>
-                      <Text style={styles.weatherTimeText}>Updated 15 minutes ago</Text>
-                    </View>
-                  </View>
-                </View>
-                <Divider style={styles.weatherDivider} />
-                {/* Outbreak Info */}
-                <View style={styles.outbreakContent}>
-                  <View style={styles.outbreakHeader}>
-                    <View style={styles.outbreakTitleContainer}>
-                      <MaterialIcons name="warning" size={20} color="#E53E3E" />
-                      <Text style={styles.outbreakTitle}>Disease Alert</Text>
-                    </View>
-                    <Badge style={styles.outbreakBadge}>
-                      {OUTBREAK_DATA.trend === 'up' ? '↑' : OUTBREAK_DATA.trend === 'down' ? '↓' : '='}
-                    </Badge>
-                  </View>
-                  <View style={styles.outbreakContentRow}>
-                    <View style={styles.percentageContainer}>
-                      <Text style={styles.percentageText}>{OUTBREAK_DATA.percentage}%</Text>
-                      <Text style={styles.percentageLabel}>Risk Level</Text>
-                    </View>
-                    <View style={styles.outbreakDetails}>
-                      <Text style={styles.outbreakDetailText}>
-                        {OUTBREAK_DATA.diseaseType} outbreak reported in {OUTBREAK_DATA.region}
-                      </Text>
-                      <Text style={styles.outbreakTimeText}>Updated {OUTBREAK_DATA.lastUpdated}</Text>
+                    <View style={styles.outbreakContentRow}>
+                      <View style={styles.percentageContainer}>
+                        <Text style={styles.percentageText}>{OUTBREAK_DATA.percentage}%</Text>
+                        <Text style={styles.percentageLabel}>Risk Level</Text>
+                      </View>
+                      <View style={styles.outbreakDetails}>
+                        <Text style={styles.outbreakDetailText}>
+                          {OUTBREAK_DATA.diseaseType} outbreak reported in {OUTBREAK_DATA.region}
+                        </Text>
+                        <Text style={styles.outbreakTimeText}>Updated {OUTBREAK_DATA.lastUpdated}</Text>
+                      </View>
                     </View>
                   </View>
                 </View>
-              </View>
+              </LinearGradient>
             </Surface>
 
             {/* Weather Alerts */}
             {loadingAlerts ? (
-              <Surface style={[styles.alertsCard, styles.loadingCard]}>
+              <Surface style={styles.alertsCard}>
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color="#276749" />
                   <Text style={styles.loadingText}>{t('common.loading')}</Text>
                 </View>
               </Surface>
             ) : weatherAlerts.length > 0 ? (
-              <Surface style={[styles.alertsCard, styles.alertCard]}>
+              <Surface style={styles.alertsCard}>
                 <View style={styles.alertHeader}>
                   <MaterialIcons name="notifications-active" size={20} color="#E53E3E" />
-                  <Text style={styles.alertHeaderText}>{t('dashboard.weatherAlerts')}</Text>
+                  <Text style={styles.alertHeaderText}>Weather Alerts</Text>
                 </View>
                 <Divider style={styles.alertDivider} />
                 {weatherAlerts.map((alert: string, index: number) => (
@@ -329,7 +375,7 @@ const DashboardScreen = () => {
               <Button
                 mode="contained"
                 icon="play-circle"
-                onPress={() => console.log('Start training')}
+                onPress={() => navigation.navigate('TrainingQuiz')}
                 style={styles.startQuizButton}
               >
                 Start {TRAINING_DATA.nextQuiz} Quiz
@@ -364,17 +410,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7FAFC',
   },
   header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   headerTitle: {
     fontSize: 20,
-    color: '#276749',
+    fontWeight: 'bold',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  languageButton: {
+    margin: 0,
   },
   section: {
     marginVertical: 10,
@@ -432,7 +486,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 8,
-    color: '#276749',
+    color: '#FFFFFF',
   },
   weatherContentRow: {
     flexDirection: 'row',
@@ -441,32 +495,38 @@ const styles = StyleSheet.create({
   temperatureContainer: {
     alignItems: 'center',
     marginRight: 16,
-    width: 60,
+    width: 100,
   },
   temperatureValue: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#276749',
+    color: '#FFFFFF',
+    lineHeight: 40,
   },
   temperatureLabel: {
-    fontSize: 10,
-    color: '#4A5568',
+    fontSize: 12,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    marginTop: -4,
   },
   weatherDetails: {
     flex: 1,
   },
-  weatherDetailText: {
-    fontSize: 12,
-    color: '#4A5568',
+  weatherDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  weatherTimeText: {
-    fontSize: 10,
-    color: '#718096',
+  weatherDetailText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginLeft: 8,
+    opacity: 0.9,
   },
   weatherDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginVertical: 12,
   },
   outbreakContent: {
     padding: 12,
@@ -485,11 +545,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 8,
-    color: '#E53E3E',
+    color: '#FED7D7',
   },
   outbreakBadge: {
-    backgroundColor: '#FED7D7',
-    color: '#E53E3E',
+    backgroundColor: 'rgba(254, 215, 215, 0.2)',
+    color: '#FED7D7',
   },
   outbreakContentRow: {
     flexDirection: 'row',
@@ -503,23 +563,25 @@ const styles = StyleSheet.create({
   percentageText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#E53E3E',
+    color: '#FED7D7',
   },
   percentageLabel: {
     fontSize: 10,
-    color: '#4A5568',
+    color: '#FED7D7',
+    opacity: 0.8,
   },
   outbreakDetails: {
     flex: 1,
   },
   outbreakDetailText: {
     fontSize: 12,
-    color: '#4A5568',
-    marginBottom: 4,
+    color: '#FED7D7',
+    opacity: 0.9,
   },
   outbreakTimeText: {
     fontSize: 10,
-    color: '#718096',
+    color: '#FED7D7',
+    opacity: 0.7,
   },
   alertsCard: {
     width: '100%',
@@ -533,18 +595,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingTop: 12,
   },
   alertHeaderText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#E53E3E',
+    color: '#4A5568',
     marginLeft: 8,
   },
   alertDivider: {
     marginBottom: 8,
-    backgroundColor: '#FED7D7',
   },
   loadingContainer: {
     padding: 20,
@@ -559,14 +618,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginVertical: 6,
     alignItems: 'flex-start',
-    paddingHorizontal: 12,
-    paddingBottom: 12,
   },
   alertIconContainer: {
     marginRight: 8,
-    backgroundColor: '#FED7D7',
-    padding: 4,
-    borderRadius: 12,
   },
   alertContent: {
     flex: 1,
@@ -718,20 +772,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#276749',
     borderRadius: 8,
   },
-  weatherCard: {
-    backgroundColor: '#FFFFFF',
-    borderLeftWidth: 4,
-    borderLeftColor: '#3182CE',
-  },
-  alertCard: {
-    backgroundColor: '#FFF5F5',
-    borderLeftWidth: 4,
-    borderLeftColor: '#E53E3E',
-  },
-  loadingCard: {
-    backgroundColor: '#F7FAFC',
-    borderLeftWidth: 4,
-    borderLeftColor: '#CBD5E0',
+  weatherGradient: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });
 
