@@ -97,7 +97,7 @@ const SignUpScreen = () => {
             resizeMode="contain"
           />
 
-          <Title style={styles.title}>{t('signUp')}</Title>
+          <Title style={styles.title}>{t('sign Up')}</Title>
 
           <View style={styles.formContainer}>
             <Input
@@ -129,7 +129,7 @@ const SignUpScreen = () => {
             />
 
             <Input
-              label={t('confirmPassword')}
+              label={t('confirm Password')}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               error={confirmPasswordError}
@@ -149,7 +149,7 @@ const SignUpScreen = () => {
               style={styles.signUpButton}
               labelStyle={styles.buttonLabel}
             >
-              {loading ? t('loading') : t('createAccount')}
+              {loading ? t('loading') : t('create Account')}
             </Button>
 
             <View style={styles.dividerContainer}>

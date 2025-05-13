@@ -1,19 +1,20 @@
 import React from 'react';
-import { View, useColorScheme, SafeAreaView, StyleSheet, StatusBar } from 'react-native';
+import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { CartProvider } from './src/contexts/CartContext';
 import { SnackbarProvider } from './src/contexts/SnackbarContext';
-import { RootNavigator } from './src/navigation/index'
+import RootNavigator from './src/navigation';
 import { CombinedDefaultTheme } from './src/theme/theme';
 
 export default function App() {
   const colorScheme = useColorScheme();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor="#F7FAFC" />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <PaperProvider theme={CombinedDefaultTheme}>
           <AuthProvider>
             <CartProvider>
@@ -24,17 +25,13 @@ export default function App() {
           </AuthProvider>
         </PaperProvider>
       </SafeAreaView>
-    </View>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7FAFC',
-  },
   safeArea: {
     flex: 1,
-    paddingTop: 8,
+    backgroundColor: '#F7FAFC',
   },
 });

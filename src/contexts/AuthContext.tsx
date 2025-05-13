@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from 'src/config/firebase';
+import { auth } from '../config/firebase';
 import { AuthError } from '../services/authService';
 
 interface AuthContextType {
@@ -43,8 +43,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(user);
       setLoading(false);
     });
-
-    return () => unsubscribe();
+  
+    return unsubscribe;
   }, []);
 
   const value = {
@@ -60,4 +60,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-}; 
+};

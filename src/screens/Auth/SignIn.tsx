@@ -83,7 +83,7 @@ const SignInScreen = () => {
             resizeMode="contain"
           />
 
-          <Title style={styles.title}>{t('welcomeBack')}</Title>
+          <Title style={styles.title}>{t('welcome Back')}</Title>
 
           {generalError ? (
             <Surface style={styles.errorContainer}>
@@ -123,7 +123,7 @@ const SignInScreen = () => {
               style={styles.signInButton}
               labelStyle={styles.buttonLabel}
             >
-              {loading ? t('loading') : t('signIn')}
+              {loading ? t('loading') : t('sign In')}
             </Button>
 
             <View style={styles.dividerContainer}>
