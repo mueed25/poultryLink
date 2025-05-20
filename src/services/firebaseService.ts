@@ -1,4 +1,4 @@
-import { firestore } from '../config/firebase';
+import { firestore } from '../config/superbase';
 import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 interface UserData {

@@ -4,7 +4,7 @@ import { ActivityIndicator, View, useColorScheme } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import AppNavigator from './AppNavigator';
 import AuthNavigator from './AuthNavigator';
-import { useAuth } from '../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { CombinedDefaultTheme } from '../theme/theme';
 import { RootStackParamList } from './types';
 

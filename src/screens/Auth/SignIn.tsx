@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView, View } from 'react-native';
+import { Alert, StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView, View } from 'react-native';
 import { Button, Text, Title, Surface, Card, Divider } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../navigation/types';
 import { Input } from '../../components/Input';
-import { signIn } from '../../services/authService';
 import { useAuth } from '../../contexts/AuthContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 
 type SignInScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'SignIn'>;
 
@@ -22,6 +23,8 @@ const SignInScreen = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [generalError, setGeneralError] = useState('');
+  const { login, loginWithGoogle } = useAuth()
+  const [googleLoginLoading, setGoogleLoginLoading] = useState(false);
 
   const validateInputs = () => {
     let isValid = true;
@@ -55,11 +58,11 @@ const SignInScreen = () => {
     setGeneralError('');
     
     try {
-      await signIn(email, password);
+      await login(email, password);
       // Navigation will be handled by the auth state listener
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      setGeneralError(t('invalid Credentials'));
+      const authError = error as Error;
+      Alert.alert('Login Failed', authError.message);
     } finally {
       setLoading(false);
     }
@@ -71,6 +74,19 @@ const SignInScreen = () => {
 
   const navigateToForgotPassword = () => {
     navigation.navigate('ForgotPassword');
+  };
+
+  const handleGoogleLogin = async (): Promise<void> => {
+    try {
+      setGoogleLoginLoading(true);
+      await loginWithGoogle();
+      // Auth state listener will handle navigation
+    } catch (error) {
+      const authError = error as Error;
+      Alert.alert('Google Login Failed', authError.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -132,20 +148,22 @@ const SignInScreen = () => {
               <Divider style={styles.divider} />
             </View>
 
-            <View style={styles.socialContainer}>
-              <Surface style={styles.socialButton}>
-                <Image 
-                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
-                  style={styles.socialIcon}
-                />
-              </Surface>
-              
-              <Surface style={styles.socialButton}>
-                <Image 
-                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/0/747.png' }}
-                  style={styles.socialIcon}
-                />
-              </Surface>
+            <View style={{ width: '100%' }}>
+                <Button
+                  mode="contained"
+                  onPress={handleGoogleLogin}
+                  loading={googleLoginLoading}
+                  disabled={googleLoginLoading}
+                  style={styles.signInButton}
+                  labelStyle={styles.buttonLabel}
+                  icon={({ size, color }) => (
+                    <MaterialCommunityIcons name="google" size={size} color={color} />
+                  )}
+                >
+                  {googleLoginLoading ? t('loading..') : t('Sign in with Google')}
+                </Button>
+
+
             </View>
 
             <View style={styles.signUpContainer}>

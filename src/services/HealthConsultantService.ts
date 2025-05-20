@@ -1,4 +1,4 @@
-import { db } from '../config/firebase';
+import { db } from '../config/superbase';
 import { collection, addDoc, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { getCurrentUser } from './authService';
 

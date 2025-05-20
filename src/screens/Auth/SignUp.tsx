@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView, View } from 'react-native';
-import { Button, Text, Title, Surface, Divider } from 'react-native-paper';
+import { StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView, View,Alert, } from 'react-native';
+import { Button, Text, Title, Surface, Divider,  } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../navigation/types';
 import { Input } from '../../components/Input';
-import { signUp } from '../../services/authService';
+import { useAuth } from '../../contexts/AuthContext';
 
 type SignUpScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'SignUp'>;
 
@@ -14,7 +14,6 @@ const SignUpScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<SignUpScreenNavigationProp>();
 
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -23,17 +22,10 @@ const SignUpScreen = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const { register } = useAuth();
 
   const validateInputs = () => {
     let isValid = true;
-
-    // Validate name
-    if (!name.trim()) {
-      setNameError('Name is required');
-      isValid = false;
-    } else {
-      setNameError('');
-    }
 
     // Validate email
     if (!email) {
@@ -73,11 +65,15 @@ const SignUpScreen = () => {
 
     setLoading(true);
     try {
-      await signUp(email, password, name, 'farmer');
-      navigation.navigate('FarmProfile');
+      await register(email, password);
+      Alert.alert(
+        'Registration Successful', 
+        'Please check your email to confirm your account.',
+        [{ text: 'OK', onPress: () => navigation.navigate('SignIn') }]
+      );
     } catch (error: any) {
-      console.error('Sign up error:', error);
-      setEmailError('Account creation failed. This email might be in use already.');
+      const authError = error as Error;
+      Alert.alert('Registration Failed', authError.message);
     } finally {
       setLoading(false);
     }
@@ -100,14 +96,6 @@ const SignUpScreen = () => {
           <Title style={styles.title}>{t('sign Up')}</Title>
 
           <View style={styles.formContainer}>
-            <Input
-              label={t('name')}
-              value={name}
-              onChangeText={setName}
-              error={nameError}
-              autoCapitalize="words"
-              required
-            />
 
             <Input
               label={t('email')}

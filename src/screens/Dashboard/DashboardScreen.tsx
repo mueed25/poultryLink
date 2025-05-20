@@ -7,6 +7,8 @@ import AIAlertService from '../../services/AIAlertService';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
+import { supabase } from '../../config/superbase'
 
 const { width } = Dimensions.get('window');
 
@@ -58,30 +60,7 @@ interface WeatherData {
   wind: string;
 }
 
-// Mock data for daily tips
-const DAILY_TIPS: DailyTip[] = [
-  {
-    id: '1',
-    title: 'Proper Ventilation',
-    content: 'Ensure proper airflow in your poultry house to reduce heat stress and ammonia buildup.',
-    image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    icon: 'air',
-  },
-  {
-    id: '2',
-    title: 'Water Quality',
-    content: 'Check water quality weekly. Clean drinkers daily to prevent bacterial growth.',
-    image: 'https://images.unsplash.com/photo-1588421357574-87938a86fa28?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    icon: 'water-drop',
-  },
-  {
-    id: '3',
-    title: 'Balanced Nutrition',
-    content: 'Provide a balanced diet with proper protein levels based on bird age and purpose.',
-    image: 'https://images.unsplash.com/photo-1534470397334-1975940ece1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    icon: 'restaurant',
-  },
-];
+
 
 // Mock disease outbreak data
 const OUTBREAK_DATA: OutbreakData = {
@@ -118,19 +97,49 @@ const TRAINING_DATA = {
 const DashboardScreen = () => {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation();
-  const { signOut } = useAuth();
   const [weatherAlerts, setWeatherAlerts] = useState<string[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
   const [expandedComments, setExpandedComments] = useState<{[key: string]: boolean}>({});
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [loadingWeather, setLoadingWeather] = useState<boolean>(true);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [dailyTips, setDailyTips] = useState<DailyTip[]>([]);
 
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const API_KEY = '519e485f0f05b528872c3e8c7e89e4cf';
+        const LAT = 6.5244;
+        const LON = 3.3792;
+        const resp = await axios.get(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&units=metric&appid=${API_KEY}`
+        );
+        const d = resp.data;
+        setWeatherData({
+          temperature: d.main.temp,
+          condition: d.weather[0].description,
+          humidity: d.main.humidity,
+          rainfall: d.rain?.['1h'] ? `${d.rain['1h']}mm` : '0mm',
+          wind: `${d.wind.speed}km/h`,        
+        });
+      } catch (e: any) {
+        console.error('Weather fetch error', e);
+        setWeatherError('Unable to load weather');
+      } finally {
+        setLoadingWeather(false);
+      }
+    };
+    fetchWeather();
+  }, []);
+
+  // Fetch weather alerts
   useEffect(() => {
     const fetchWeatherAlerts = async () => {
       try {
-        // Simulate fetching weather alerts
         const alerts = await AIAlertService.getInstance().getWeatherAlerts({
           latitude: 6.5244,
-          longitude: 3.3792, // Lagos, Nigeria
+          longitude: 3.3792,
         });
         setWeatherAlerts(alerts.map(alert => alert.description));
       } catch (error) {
@@ -139,9 +148,44 @@ const DashboardScreen = () => {
         setLoadingAlerts(false);
       }
     };
-
     fetchWeatherAlerts();
   }, []);
+
+  // after your other useEffects, add one for dailyTips:
+useEffect(() => {
+  let subscription: any;
+
+  const fetchTips = async () => {
+    const { data, error } = await supabase
+      .from<DailyTip>('daily_tips')
+      .select('*')
+      .order('inserted_at', { ascending: true });
+
+    if (error) console.error('Error fetching tips:', error);
+    else setDailyTips(data);
+  };
+
+  // initial load
+  fetchTips();
+
+  // subscribe to inserts/updates/deletes
+  subscription = supabase
+    .channel('public:daily_tips')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'daily_tips' },
+      (payload) => {
+        // payload.eventType === 'INSERT' | 'UPDATE' | 'DELETE'
+        fetchTips(); // or update local state more granularly
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(subscription);
+  };
+}, []);
+
 
   const toggleComments = (postId: string) => {
     setExpandedComments(prev => ({
@@ -240,26 +284,26 @@ const DashboardScreen = () => {
                     </View>
                     <View style={styles.weatherContentRow}>
                       <View style={styles.temperatureContainer}>
-                        <Text style={styles.temperatureValue}>{WEATHER_DATA.temperature}°C</Text>
-                        <Text style={styles.temperatureLabel}>{WEATHER_DATA.condition}</Text>
+                        <Text style={styles.temperatureValue}>{weatherData?.temperature}°</Text>
+                        <Text style={styles.temperatureLabel}>{weatherData?.condition}</Text>
                       </View>
                       <View style={styles.weatherDetails}>
                         <View style={styles.weatherDetailRow}>
                           <MaterialIcons name="water-drop" size={16} color="#FFFFFF" />
                           <Text style={styles.weatherDetailText}>
-                            Humidity: {WEATHER_DATA.humidity}%
+                            Humidity: {weatherData?.humidity}%
                           </Text>
                         </View>
                         <View style={styles.weatherDetailRow}>
                           <MaterialIcons name="water" size={16} color="#FFFFFF" />
                           <Text style={styles.weatherDetailText}>
-                            Rain: {WEATHER_DATA.rainfall}
+                            Rain: {weatherData?.rainfall}
                           </Text>
                         </View>
                         <View style={styles.weatherDetailRow}>
                           <MaterialIcons name="air" size={16} color="#FFFFFF" />
                           <Text style={styles.weatherDetailText}>
-                            Wind: {WEATHER_DATA.wind}
+                            Wind: {weatherData?.wind}
                           </Text>
                         </View>
                       </View>
@@ -391,12 +435,11 @@ const DashboardScreen = () => {
           </View>
 
           <FlatList
-            data={DAILY_TIPS}
+            data={dailyTips}
             horizontal
             showsHorizontalScrollIndicator={false}
             renderItem={renderTipCard}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.tipsContainer}
           />
         </View>
       </ScrollView>

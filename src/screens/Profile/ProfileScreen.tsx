@@ -19,7 +19,7 @@ import {
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { logout } from '../../services/authService';
+import { useAuth } from 'src/contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -111,6 +111,7 @@ const ProfileScreen = () => {
   const [postCaption, setPostCaption] = useState('');
   const [posts, setPosts] = useState<UserPost[]>(USER_POSTS);
   const [fabOpen, setFabOpen] = useState(false);
+  const { logout } = useAuth();
   
   // Dummy user data - in a real app, you would fetch this from Firebase
   const [userData, setUserData] = useState<UserData>({

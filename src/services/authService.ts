@@ -7,7 +7,7 @@ import {
   User,
   AuthError as FirebaseAuthError
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth } from '../config/superbase';
 import { createUser } from './firebaseService';
 
 export interface AuthError {
